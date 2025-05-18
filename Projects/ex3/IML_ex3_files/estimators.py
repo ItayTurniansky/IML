@@ -34,8 +34,8 @@ class LinearRegression(BaseEstimator):
         loss : float
             Performance under MSE loss function
         """
-        raise NotImplementedError()
-
+        y_pred = self.predict(X)
+        return float(np.mean((y - y_pred) ** 2))
 
 class Lasso(BaseEstimator):
     def __init__(self, alpha: float = 1.0, include_intercept: bool = True):
@@ -66,7 +66,8 @@ class Lasso(BaseEstimator):
         loss : float
             Performance under MSE loss function
         """
-        raise NotImplementedError()
+        y_pred = self.predict(X)
+        return float(np.mean((y - y_pred) ** 2))
 
 
 class RidgeRegression(BaseEstimator):
@@ -124,7 +125,13 @@ class RidgeRegression(BaseEstimator):
         -----
         Fits model with or without an intercept depending on value of `self.include_intercept_`
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.column_stack((np.ones(X.shape[0]), X))
+        n_features = X.shape[1]
+        identity = np.eye(n_features)
+        if self.include_intercept_:
+            identity[0, 0] = 0
+        self.coefs_ = np.linalg.pinv(X.T @ X + self.lam_ * identity) @ X.T @ y
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -140,7 +147,9 @@ class RidgeRegression(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        if self.include_intercept_:
+            X = np.column_stack((np.ones(X.shape[0]), X))
+        return X @ self.coefs_
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -159,6 +168,5 @@ class RidgeRegression(BaseEstimator):
         loss : float
             Performance under MSE loss function
         """
-        raise NotImplementedError()
-
-
+        y_pred = self._predict(X)
+        return float(np.mean((y - y_pred)**2))
