@@ -22,8 +22,14 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
     # Question 1 - Load diabetes dataset and split into training and testing portions
     diabetes = datasets.load_diabetes()
     X, y = diabetes.data, diabetes.target
-    X_train, y_train = X[:n_samples], y[:n_samples]
-    X_test, y_test = X[n_samples:], y[n_samples:]
+    n_total =X.shape[0]
+    np.random.seed(0)
+    np.random.seed(0)
+    train_indices = np.random.choice(n_total, n_samples, replace=False)
+    test_indices = np.array([i for i in range(n_total) if i not in train_indices])
+
+    X_train, y_train = X[train_indices], y[train_indices]
+    X_test, y_test = X[test_indices], y[test_indices]
 
     # Question 2 - Perform Cross Validation for different values of the regularization parameter for Ridge and
     # Lasso regressions
@@ -110,9 +116,6 @@ def select_regularization_parameter(n_samples: int = 50, n_evaluations: int = 50
     ls.fit(X_train, y_train)
     ls_test_error = ls.loss(X_test, y_test)
 
-    print(f"Best Ridge λ = {best_ridge_lambda:.4f}, Test Error = {ridge_test_error:.4f}")
-    print(f"Best Lasso λ = {best_lasso_lambda:.4f}, Test Error = {lasso_test_error:.4f}")
-    print(f"Least Squares Test Error = {ls_test_error:.4f}")
 
 if __name__ == '__main__':
     np.random.seed(0)
