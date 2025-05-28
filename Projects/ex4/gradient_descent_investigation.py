@@ -6,6 +6,7 @@ from base_module import BaseModule
 from base_learning_rate import  BaseLR
 from gradient_descent import GradientDescent
 from learning_rate import FixedLR
+import matplotlib.pyplot as plt
 
 
 
@@ -15,6 +16,25 @@ from logistic_regression import LogisticRegression
 from utils import split_train_test
 
 import plotly.graph_objects as go
+
+def save_simple_descent_plot(weights: List[np.ndarray], title: str):
+    if len(weights) == 0:
+        print(f"[Warning] No weights recorded for {title}")
+        return
+
+    weights = np.array(weights)
+    if weights.ndim == 1:
+        weights = np.expand_dims(weights, axis=0)
+
+    plt.figure(figsize=(6, 6))
+    plt.plot(weights[:, 0], weights[:, 1], marker="o", markersize=3, linewidth=1)
+    plt.title(title)
+    plt.xlabel("w[0]")
+    plt.ylabel("w[1]")
+    plt.grid(True)
+    plt.axis("equal")
+    plt.savefig(title + ".png")
+
 
 
 def plot_descent_path(module: Type[BaseModule],
@@ -79,14 +99,40 @@ def get_gd_state_recorder_callback() -> Tuple[Callable[[], None], List[np.ndarra
     weights: List[np.ndarray]
         Recorded parameters
     """
-    raise NotImplementedError()
+    values = []
+    weights = []
+    def callback(**kwargs):
+        values.append(kwargs["val"])
+        weights.append(kwargs["weights"].copy())
+
+    return callback, values, weights
+
+
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
-    raise NotImplementedError()
+    for eta in etas:
+        learning_rate = FixedLR(eta)
+        module1 = L1(init.copy())
+        callback1, values1, weights1 = get_gd_state_recorder_callback()
+        gd1 = GradientDescent(learning_rate = learning_rate, callback = callback1)
+        gd1.fit(f = module1, X= None, y=None)
+        if eta == 0.01:
+            fig1 = plot_descent_path(L1, np.array(weights1), title=f"L1 Descent Path (eta={eta})")
+            fig1.write_image(f"L1_descent_eta_{eta}_fancy.png")
+        else:
+            save_simple_descent_plot(weights1, f"L1 Descent Path (eta={eta})")
 
-
+        module2= L2(init.copy())
+        callback2, values2, weights2 = get_gd_state_recorder_callback()
+        gd2 = GradientDescent(learning_rate=learning_rate, callback=callback2)
+        gd2.fit(f=module2, X=None, y=None)
+        if eta == 0.01:
+            fig2 = plot_descent_path(L2, np.array(weights2), title=f"L2 Descent Path (eta={eta})")
+            fig2.write_image(f"L2_descent_eta_{eta}_fancy.png")
+        else:
+            save_simple_descent_plot(weights2, f"L2 Descent Path (eta={eta})")
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
@@ -136,4 +182,4 @@ def fit_logistic_regression():
 if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
-    fit_logistic_regression()
+#    fit_logistic_regression()

@@ -24,6 +24,7 @@ class BaseModule(ABC):
         """
         self.weights_ = weights
 
+
     def compute_output(self, **kwargs) -> np.ndarray:
         """
         Compute the output value of the function
