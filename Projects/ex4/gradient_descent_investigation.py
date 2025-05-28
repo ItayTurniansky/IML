@@ -120,7 +120,7 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
         gd1.fit(f = module1, X= None, y=None)
         if eta == 0.01:
             fig1 = plot_descent_path(L1, np.array(weights1), title=f"L1 Descent Path (eta={eta})")
-            fig1.write_image(f"L1_descent_eta_{eta}_fancy.png")
+            fig1.write_html(f"L1_descent_eta_{eta}_fancy.html")
         else:
             save_simple_descent_plot(weights1, f"L1 Descent Path (eta={eta})")
 
@@ -130,7 +130,7 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
         gd2.fit(f=module2, X=None, y=None)
         if eta == 0.01:
             fig2 = plot_descent_path(L2, np.array(weights2), title=f"L2 Descent Path (eta={eta})")
-            fig2.write_image(f"L2_descent_eta_{eta}_fancy.png")
+            fig2.write_html(f"L2_descent_eta_{eta}_fancy.html")
         else:
             save_simple_descent_plot(weights2, f"L2 Descent Path (eta={eta})")
 
