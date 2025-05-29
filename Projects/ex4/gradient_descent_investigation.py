@@ -108,31 +108,59 @@ def get_gd_state_recorder_callback() -> Tuple[Callable[[], None], List[np.ndarra
     return callback, values, weights
 
 
+def plot_convergence_curves(convergence_dict, title, filename):
+    plt.figure(figsize=(10, 6))
+    for eta, values in convergence_dict.items():
+        plt.plot(range(len(values)), values, label=f"η = {eta}")
+    plt.yscale("linear")
+    plt.xlabel("Iteration")
+    plt.ylabel("Objective value")
+    plt.title(f"{title} Module - Convergence Rate")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
 
 
 def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e / 3]),
                                  etas: Tuple[float] = (1, .1, .01, .001)):
+
+    l1_convergence = {}
+    l2_convergence = {}
+
+    ##1+2##
     for eta in etas:
         learning_rate = FixedLR(eta)
         module1 = L1(init.copy())
         callback1, values1, weights1 = get_gd_state_recorder_callback()
         gd1 = GradientDescent(learning_rate = learning_rate, callback = callback1)
         gd1.fit(f = module1, X= None, y=None)
-        if eta == 0.01:
-            fig1 = plot_descent_path(L1, np.array(weights1), title=f"L1 Descent Path (eta={eta})")
-            fig1.write_html(f"L1_descent_eta_{eta}_fancy.html")
-        else:
-            save_simple_descent_plot(weights1, f"L1 Descent Path (eta={eta})")
+        l1_convergence[eta] = values1
+        fig1 = plot_descent_path(L1, np.array(weights1), title=f"L1 Descent Path (eta={eta})")
+        fig1.write_html(f"L1_descent_eta_{eta}_fancy.html")
 
         module2= L2(init.copy())
         callback2, values2, weights2 = get_gd_state_recorder_callback()
         gd2 = GradientDescent(learning_rate=learning_rate, callback=callback2)
         gd2.fit(f=module2, X=None, y=None)
-        if eta == 0.01:
-            fig2 = plot_descent_path(L2, np.array(weights2), title=f"L2 Descent Path (eta={eta})")
-            fig2.write_html(f"L2_descent_eta_{eta}_fancy.html")
-        else:
-            save_simple_descent_plot(weights2, f"L2 Descent Path (eta={eta})")
+        l2_convergence[eta] = values2
+        fig2 = plot_descent_path(L2, np.array(weights2), title=f"L2 Descent Path (eta={eta})")
+        fig2.write_html(f"L2_descent_eta_{eta}_fancy.html")
+
+    ##3##
+    plot_convergence_curves(l1_convergence, "L1", "L1_convergence.png")
+    plot_convergence_curves(l2_convergence, "L2", "L2_convergence.png")
+
+    ##4##
+    print("=== Lowest Loss Achieved ===")
+    print("L1:")
+    for eta, vals in l1_convergence.items():
+        print(f"  η = {eta}: min loss = {min(vals):.9f}")
+
+    print("L2:")
+    for eta, vals in l2_convergence.items():
+        print(f"  η = {eta}: min loss = {min(vals):.9f}")
 
 
 def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
