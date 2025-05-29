@@ -6,7 +6,9 @@ from base_module import BaseModule
 from base_learning_rate import  BaseLR
 from gradient_descent import GradientDescent
 from learning_rate import FixedLR
+from sklearn.metrics import roc_curve
 import matplotlib.pyplot as plt
+from cross_validate import cross_validate
 
 
 
@@ -153,7 +155,7 @@ def compare_fixed_learning_rates(init: np.ndarray = np.array([np.sqrt(2), np.e /
     plot_convergence_curves(l2_convergence, "L2", "L2_convergence.png")
 
     ##4##
-    print("=== Lowest Loss Achieved ===")
+    print("Part 1 === GD ===")
     print("L1:")
     for eta, vals in l1_convergence.items():
         print(f"  η = {eta}: min loss = {min(vals):.9f}")
@@ -195,19 +197,84 @@ def load_data(path: str = "SAheart.data", train_portion: float = .8) -> \
     return split_train_test(df.drop(['chd', 'row.names'], axis=1), df.chd, train_portion)
 
 
+def misclassification_error(y_true, y_pred):
+    return np.mean(y_true != y_pred)
+
+
 def fit_logistic_regression():
+    print("Part 2 === Logistic Regression ===")
+
     # Load and split SA Heard Disease dataset
     X_train, y_train, X_test, y_test = load_data()
+    y_train = y_train.reset_index(drop=True)
+    y_test = y_test.reset_index(drop=True)
 
     # Plotting convergence rate of logistic regression over SA heart disease data
-    raise NotImplementedError()
+    X_train = np.c_[np.ones(X_train.shape[0]), X_train]
+    X_test = np.c_[np.ones(X_test.shape[0]), X_test]
+
+    lr = LogisticRegression(include_intercept=True, penalty="none")
+    lr._fit(X_train, y_train)
+    y_pred_proba = lr.predict_proba(X_test)
+    fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
+
+    j_scores = tpr - fpr
+    best_idx = np.argmax(j_scores)
+    alpha_star = thresholds[best_idx]
+    print(f"Optimal α* = {alpha_star:.4f}")
+    y_pred = (y_pred_proba >= alpha_star).astype(int)
+    test_error = np.mean(y_pred != y_test)
+    print(f"Test error with α* = {alpha_star:.4f}: {test_error:.4f}")
+
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(fpr, tpr, label="ROC Curve", color='blue')
+    plt.plot([0, 1], [0, 1], linestyle="--", color="gray")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("ROC Curve - Logistic Regression (No Regularization)")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("logistic_regression_roc.png")
+    plt.show()
 
     # Fitting l1- and l2-regularized logistic regression models, using cross-validation to specify values
     # of regularization parameter
-    raise NotImplementedError()
+    lambdas = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1]
+    best_lambda = None
+    best_val_score = float('inf')
+    for lam in lambdas:
+        solver = GradientDescent(learning_rate=FixedLR(1e-4), max_iter=20000)
+        estimator = LogisticRegression(
+            include_intercept=True,
+            solver=solver,
+            penalty="l1",
+            lam=lam,
+            alpha=0.5
+        )
+        train_score, val_score = cross_validate(estimator, X_train, y_train,
+                                                scoring=misclassification_error, cv=5)
+        print(f"λ = {lam}: train error = {train_score:.4f}, validation error = {val_score:.4f}")
+        if val_score < best_val_score:
+            best_val_score = val_score
+            best_lambda = lam
 
+    print(f"Best λ : {best_lambda}")
+
+    final_solver = GradientDescent(learning_rate=FixedLR(1e-4), max_iter=20000)
+    final_model = LogisticRegression(
+        include_intercept=True,
+        solver=final_solver,
+        penalty="l1",
+        lam=best_lambda,
+        alpha=0.5
+    )
+    final_model._fit(X_train, y_train)
+    test_error = final_model._loss(X_test, y_test)
+    print(f"Test error using best λ = {best_lambda}: {test_error:.4f}")
 
 if __name__ == '__main__':
     np.random.seed(0)
     compare_fixed_learning_rates()
-#    fit_logistic_regression()
+    fit_logistic_regression()
